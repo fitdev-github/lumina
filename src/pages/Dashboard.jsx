@@ -35,7 +35,7 @@ export default function Dashboard() {
   return (
     <div className="bg-gradient-to-br from-surface via-surface-50 to-white min-h-screen">
       <TopBar />
-      <main className="pt-24 pb-32 px-5 max-w-7xl mx-auto space-y-6">
+      <main className="page-top pb-32 px-5 max-w-7xl mx-auto space-y-6">
         
         {/* AI Insights Card */}
         <Card className="border-primary/20 bg-gradient-to-r from-primary-50/50 via-white to-accent-50/30 overflow-hidden relative">

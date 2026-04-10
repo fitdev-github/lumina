@@ -83,7 +83,7 @@ export default function ProfileEdit() {
     <div className="min-h-screen bg-gradient-to-br from-surface via-surface-50 to-white">
       <TopBar title="แก้ไขโปรไฟล์" onClose={() => navigate('/profile')} back={true} showProfile={false} />
 
-      <main className="max-w-lg mx-auto px-5 pt-24 pb-32">
+      <main className="max-w-lg mx-auto px-5 page-top pb-32">
 
         {/* Avatar */}
         <div className="text-center mb-8">

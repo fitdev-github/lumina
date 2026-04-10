@@ -82,7 +82,7 @@ export default function Notifications() {
     <div className="min-h-screen bg-gradient-to-br from-surface via-surface-50 to-white">
       <TopBar title="การแจ้งเตือน" onClose={() => navigate('/profile')} />
       
-      <main className="max-w-lg mx-auto px-5 pt-24 pb-32">
+      <main className="max-w-lg mx-auto px-5 page-top pb-32">
         
         {/* Summary Card */}
         <Card className="mb-6 bg-gradient-to-r from-primary-50 to-white border-primary/20">

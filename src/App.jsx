@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { FinanceProvider } from '@/contexts/FinanceContext'
 import { AIInsightsProvider } from '@/contexts/AIInsightsContext'
+import { ThemeProvider } from '@/contexts/ThemeContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -25,6 +26,7 @@ import MonthlyChecklist from './pages/MonthlyChecklist'
 
 function App() {
   return (
+    <ThemeProvider>
     <AuthProvider>
       <FinanceProvider>
         <AIInsightsProvider>
@@ -189,6 +191,7 @@ function App() {
         </AIInsightsProvider>
       </FinanceProvider>
     </AuthProvider>
+    </ThemeProvider>
   )
 }
 

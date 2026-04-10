@@ -109,7 +109,7 @@ export default function AddTransaction() {
     <div className="min-h-screen bg-white flex flex-col">
       <TopBar title="เพิ่มรายการ" onClose={() => navigate(-1)} back={true} showProfile={false} />
 
-      <main className="flex-1 max-w-lg mx-auto w-full px-5 pt-20 pb-28 flex flex-col">
+      <main className="flex-1 max-w-lg mx-auto w-full px-5 page-top pb-28 flex flex-col">
 
         {/* Type Toggle */}
         <div className="flex rounded-2xl bg-surface-100 p-1 mb-6 mt-4">

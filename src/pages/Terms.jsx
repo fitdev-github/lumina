@@ -52,7 +52,7 @@ export default function Terms() {
     <div className="min-h-screen bg-gradient-to-br from-surface via-surface-50 to-white">
       <TopBar title="เงื่อนไขการใช้" onClose={() => navigate('/profile')} />
       
-      <main className="max-w-lg mx-auto px-5 pt-24 pb-32">
+      <main className="max-w-lg mx-auto px-5 page-top pb-32">
         
         {/* Header */}
         <div className="text-center mb-8">
