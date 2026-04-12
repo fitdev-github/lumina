@@ -1,8 +1,8 @@
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  getDoc, 
+import {
+  collection,
+  doc,
+  setDoc,
+  getDoc,
   getDocs,
   updateDoc,
   deleteDoc,
@@ -11,7 +11,8 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp,
-  addDoc
+  addDoc,
+  writeBatch
 } from 'firebase/firestore'
 import { db } from './config'
 
@@ -391,4 +392,55 @@ export async function updateLentMoney(userId, id, data) {
 
 export async function deleteLentMoney(userId, id) {
   await deleteDoc(doc(db, COLLECTIONS.USERS, userId, LENT_MONEY_COLLECTION, id))
+}
+
+// ============== GMAIL IMPORTS (deduplication) ==============
+
+const GMAIL_IMPORTS_COLLECTION = 'gmail_imports'
+
+export async function getImportedGmailIds(userId) {
+  const ref = collection(db, COLLECTIONS.USERS, userId, GMAIL_IMPORTS_COLLECTION)
+  const snapshot = await getDocs(ref)
+  return new Set(snapshot.docs.map(d => d.id))
+}
+
+export async function batchImportGmailTransactions(userId, items) {
+  // items: Array<{ transaction, gmailMessageId, subject }>
+  // Each item = 2 Firestore writes → chunk at 249 items (498 writes < 500 limit)
+  const CHUNK_SIZE = 249
+  const transactionsRef = collection(db, COLLECTIONS.USERS, userId, COLLECTIONS.TRANSACTIONS)
+  const importsRef = collection(db, COLLECTIONS.USERS, userId, GMAIL_IMPORTS_COLLECTION)
+
+  const createdIds = []
+
+  for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+    const chunk = items.slice(i, i + CHUNK_SIZE)
+    const batch = writeBatch(db)
+
+    for (const { transaction, gmailMessageId, subject } of chunk) {
+      // Create transaction document with pre-generated ID
+      const transRef = doc(transactionsRef)
+      batch.set(transRef, {
+        ...transaction,
+        source: 'gmail',
+        createdAt: serverTimestamp(),
+      })
+      createdIds.push(transRef.id)
+
+      // Track the imported Gmail message ID
+      const importRef = doc(importsRef, gmailMessageId)
+      batch.set(importRef, {
+        gmailMessageId,
+        importedAt: serverTimestamp(),
+        amount: transaction.amount,
+        type: transaction.type,
+        subject: subject || '',
+        transactionId: transRef.id,
+      })
+    }
+
+    await batch.commit()
+  }
+
+  return createdIds
 }

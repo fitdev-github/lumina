@@ -23,6 +23,7 @@ import FinancialStatus from './pages/FinancialStatus'
 import FixedExpenses from './pages/FixedExpenses'
 import CryptoPortfolio from './pages/CryptoPortfolio'
 import MonthlyChecklist from './pages/MonthlyChecklist'
+import GmailImport from './pages/GmailImport'
 
 function App() {
   return (
@@ -180,6 +181,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MonthlyChecklist />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/gmail-import"
+                element={
+                  <ProtectedRoute>
+                    <GmailImport />
                   </ProtectedRoute>
                 }
               />

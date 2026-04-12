@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import {
   User, Mail, LogOut, ChevronRight,
   Settings, Bell, Shield, HelpCircle,
-  Loader2, Moon, FileText, Calendar, ReceiptText, Target
+  Loader2, Moon, FileText, Calendar, ReceiptText, Target,
+  Download
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
@@ -14,8 +15,9 @@ import BottomNav from '@/components/BottomNav'
 const menuItems = [
   { icon: User,        label: 'โปรไฟล์',         sublabel: 'จัดการข้อมูลส่วนตัว',   color: 'text-primary',        bgColor: 'bg-primary-50',    path: '/profile/edit' },
   { icon: Bell,        label: 'การแจ้งเตือน',     sublabel: 'ตั้งค่าการแจ้งเตือน',   color: 'text-warning',        bgColor: 'bg-warning-50',    path: '/profile/notifications' },
-  { icon: Moon,        label: 'ตั้งค่า',           sublabel: 'ธีมและการแสดงผล',       color: 'text-accent',         bgColor: 'bg-accent-50',     path: '/profile/settings' },
-  { icon: Shield,      label: 'ความปลอดภัย',      sublabel: 'รหัสผ่านและ 2FA',       color: 'text-secondary',      bgColor: 'bg-secondary-50',  path: '/profile/security' },
+  { icon: Moon,        label: 'ตั้งค่า',             sublabel: 'ธีมและการแสดงผล',          color: 'text-accent',         bgColor: 'bg-accent-50',     path: '/profile/settings' },
+  { icon: Download,    label: 'นำเข้าจาก Gmail',   sublabel: 'ดึงรายการจากอีเมลธนาคาร', color: 'text-error',          bgColor: 'bg-error-50',      path: '/gmail-import' },
+  { icon: Shield,      label: 'ความปลอดภัย',        sublabel: 'รหัสผ่านและ 2FA',          color: 'text-secondary',      bgColor: 'bg-secondary-50',  path: '/profile/security' },
   { icon: HelpCircle,  label: 'ช่วยเหลือ',        sublabel: 'FAQ และติดต่อเรา',      color: 'text-primary',        bgColor: 'bg-primary-50',    path: '/profile/help' },
   { icon: FileText,    label: 'เงื่อนไขการใช้',   sublabel: 'ข้อกำหนดการใช้งาน',    color: 'text-text-secondary', bgColor: 'bg-surface-200',   path: '/profile/terms' },
 ]
