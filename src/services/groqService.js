@@ -379,17 +379,6 @@ function formatFinanceContextForInsights(context) {
     text += '\n'
   }
 
-  if (debts && debts.length > 0) {
-    const totalDebt = debts.reduce((sum, d) => sum + (d.balance || 0), 0)
-    const totalAssets = accounts?.reduce((sum, a) => sum + (a.balance || 0), 0) || 0
-    text += `== หนี้สิน ==\n`
-    text += `หนี้รวม: ${formatCurrency(totalDebt)} บาท\n`
-    debts.forEach(d => {
-      text += `  - ${d.name}: ${formatCurrency(d.balance)} บาท (ดอกเบี้ย ${d.interestRate || 0}%, ขั้นต่ำ ${formatCurrency(d.minPayment || 0)} บาท/เดือน)\n`
-    })
-    text += `Net Worth (สินทรัพย์ - หนี้): ${formatCurrency(totalAssets - totalDebt)} บาท\n\n`
-  }
-
   return text
 }
 

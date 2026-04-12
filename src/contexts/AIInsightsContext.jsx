@@ -117,7 +117,6 @@ export function AIInsightsProvider({ children }) {
       spendingTier: finance.cashFlow?.spendingTier,
       accountsTotal: finance.accounts?.reduce((s, a) => s + (a.balance || 0), 0),
       goalsTotal: finance.goals?.reduce((s, g) => s + (g.currentAmount || 0), 0),
-      debtsTotal: finance.debts?.reduce((s, d) => s + (d.balance || 0), 0),
       income: finance.totals?.income,
       expense: finance.totals?.expense,
     })

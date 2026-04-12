@@ -155,7 +155,7 @@ export default function Home() {
             </div>
             <CardContent className="p-6 relative z-10">
               <div className="flex items-start justify-between mb-1">
-                <p className="text-white/80 text-sm">ยอดเงินที่ใช้ได้คงเหลือเดือนนี้</p>
+                <p className="text-white/80 text-sm">ยอดเงินคงเหลือเดือนนี้</p>
                 <Badge className="bg-white/20 text-white border-0 text-xs">
                   {cashFlow.daysRemaining} วันที่เหลือ
                 </Badge>
