@@ -159,7 +159,7 @@ export default function TransactionList() {
     <div className="min-h-screen bg-gradient-to-br from-surface via-surface-50 to-white">
       <TopBar title="รายการทั้งหมด" onClose={() => navigate(-1)} back={true} showProfile={false} />
       
-      <main className="max-w-lg mx-auto px-5 pt-24 pb-32">
+      <main className="max-w-lg mx-auto px-5 page-top pb-32">
         
         {/* Summary Card */}
         <Card className="mb-4 bg-gradient-to-br from-primary to-accent text-white border-0 overflow-hidden">

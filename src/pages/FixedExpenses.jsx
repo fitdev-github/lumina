@@ -133,7 +133,7 @@ export default function FixedExpenses() {
     <div className="min-h-screen bg-gradient-to-br from-surface via-surface-50 to-white">
       <TopBar title="รายจ่ายประจำ" onClose={() => navigate(-1)} back={true} showProfile={false} />
 
-      <main className="max-w-lg mx-auto px-5 pt-24 pb-32 space-y-5">
+      <main className="max-w-lg mx-auto px-5 page-top pb-32 space-y-5">
 
         {/* Salary Card */}
         <Card className="overflow-hidden border-0 shadow-lg">
@@ -193,7 +193,7 @@ export default function FixedExpenses() {
                   <p className="text-lg font-bold text-error">-฿{totalFixed.toLocaleString()}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-text-tertiary mb-1">เงินอิสระ</p>
+                  <p className="text-xs text-text-tertiary mb-1">ยอดเงินที่ใช้ได้</p>
                   <p className={`text-lg font-bold ${freeMoney >= 0 ? 'text-secondary' : 'text-error'}`}>
                     ฿{freeMoney.toLocaleString()}
                   </p>
@@ -311,7 +311,7 @@ export default function FixedExpenses() {
                   </div>
                 ))}
                 <div className="flex justify-between pt-2 border-t border-border-subtle font-bold">
-                  <span className="text-text-primary">เงินอิสระ</span>
+                  <span className="text-text-primary">ยอดเงินที่ใช้ได้</span>
                   <span className={freeMoney >= 0 ? 'text-secondary' : 'text-error'}>
                     ฿{freeMoney.toLocaleString()}
                   </span>

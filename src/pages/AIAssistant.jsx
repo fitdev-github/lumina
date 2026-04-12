@@ -182,7 +182,7 @@ export default function AIAssistant() {
     <div className="min-h-screen bg-gradient-to-br from-surface via-surface-50 to-white flex flex-col">
       <TopBar title={`คุยกับ ${aiName}`} onClose={() => navigate('/')} />
       
-      <main className="flex-1 max-w-lg mx-auto w-full px-5 pt-20 pb-32 flex flex-col">
+      <main className="flex-1 max-w-lg mx-auto w-full px-5 page-top pb-32 flex flex-col">
         
         {/* AI Companion Header */}
         <div className="text-center py-4 border-b border-border-subtle">

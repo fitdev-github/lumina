@@ -317,7 +317,7 @@ export default function FinancialStatus() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-surface via-surface-50 to-white">
       <TopBar title="สถานะการเงิน" onClose={() => navigate(-1)} back={true} showProfile={false} />
-      <main className="max-w-lg mx-auto px-5 pt-24 pb-32 space-y-5">
+      <main className="max-w-lg mx-auto px-5 page-top pb-32 space-y-5">
 
         {/* Financial Summary Hero */}
         {(() => {
@@ -386,7 +386,7 @@ export default function FinancialStatus() {
                 <div className="bg-white px-5 py-3 flex items-center justify-between border-t border-border/40">
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${(cf.remainingFree || 0) >= 0 ? 'bg-secondary' : 'bg-error'}`} />
-                    <span className="text-xs text-text-tertiary">เงินอิสระเดือนนี้</span>
+                    <span className="text-xs text-text-tertiary">ยอดเงินที่ใช้ได้เดือนนี้</span>
                   </div>
                   <span className={`text-sm font-bold ${(cf.remainingFree || 0) >= 0 ? 'text-secondary' : 'text-error'}`}>
                     ฿{(cf.remainingFree || 0).toLocaleString()}
@@ -551,7 +551,7 @@ export default function FinancialStatus() {
                 ))}
 
                 <div className="flex justify-between items-center pt-2 border-t border-border-subtle">
-                  <span className="text-sm font-medium text-text-secondary">เงินอิสระ</span>
+                  <span className="text-sm font-medium text-text-secondary">ยอดเงินที่ใช้ได้</span>
                   <span className={`font-bold ${(cf.freeMoney || 0) >= 0 ? 'text-text-primary' : 'text-error'}`}>
                     ฿{(cf.freeMoney || 0).toLocaleString()}
                   </span>
@@ -712,7 +712,7 @@ export default function FinancialStatus() {
                       <div className="flex justify-between text-[10px] text-text-tertiary">
                         <span>ค่าใช้จ่ายคงที่</span>
                         <span className="text-secondary font-medium">ออม {savingsPct.toFixed(0)}%</span>
-                        <span>เงินอิสระ</span>
+                        <span>ยอดเงินที่ใช้ได้</span>
                       </div>
                     </div>
 
@@ -1674,7 +1674,7 @@ export default function FinancialStatus() {
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { id: 'general', label: 'ทั่วไป', desc: 'นับเป็นเงินใช้จ่าย', color: 'text-text-secondary' },
-                  { id: 'savings', label: 'เงินออม', desc: 'ไม่นับเป็นเงินอิสระ', color: 'text-secondary' },
+                  { id: 'savings', label: 'เงินออม', desc: 'ไม่นับเป็นยอดเงินที่ใช้ได้', color: 'text-secondary' },
                   { id: 'emergency', label: 'ฉุกเฉิน', desc: 'ทุนฉุกเฉินโดยเฉพาะ', color: 'text-error' },
                 ].map(p => (
                   <button key={p.id} onClick={() => setForm({ ...form, purpose: p.id })}

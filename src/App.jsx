@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { FinanceProvider } from '@/contexts/FinanceContext'
 import { AIInsightsProvider } from '@/contexts/AIInsightsContext'
+import { ThemeProvider } from '@/contexts/ThemeContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -22,9 +23,11 @@ import FinancialStatus from './pages/FinancialStatus'
 import FixedExpenses from './pages/FixedExpenses'
 import CryptoPortfolio from './pages/CryptoPortfolio'
 import MonthlyChecklist from './pages/MonthlyChecklist'
+import GmailImport from './pages/GmailImport'
 
 function App() {
   return (
+    <ThemeProvider>
     <AuthProvider>
       <FinanceProvider>
         <AIInsightsProvider>
@@ -182,6 +185,15 @@ function App() {
                 }
               />
 
+              <Route
+                path="/gmail-import"
+                element={
+                  <ProtectedRoute>
+                    <GmailImport />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
@@ -189,6 +201,7 @@ function App() {
         </AIInsightsProvider>
       </FinanceProvider>
     </AuthProvider>
+    </ThemeProvider>
   )
 }
 

@@ -144,7 +144,7 @@ export default function CryptoPortfolio() {
     <div className="min-h-screen bg-gradient-to-br from-surface via-surface-50 to-white">
       <TopBar title="พอร์ตคริปโต" onClose={() => navigate(-1)} back={true} showProfile={false} />
 
-      <main className="max-w-lg mx-auto px-5 pt-24 pb-32 space-y-5">
+      <main className="max-w-lg mx-auto px-5 page-top pb-32 space-y-5">
 
         {/* Hero */}
         <Card className="overflow-hidden border-0 shadow-xl">

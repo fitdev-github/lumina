@@ -9,8 +9,7 @@ export default function TopBar({ title = 'ลูมิน่า', onClose, showP
 
   return (
     <header className={cn(
-      "fixed z-50 bg-white/80 backdrop-blur-xl border-b border-border-subtle transition-all duration-300",
-      onClose ? "top-0 w-full" : "top-0 w-full"
+      "fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-border-subtle transition-all duration-300 safe-area-top"
     )}>
       <div className="flex justify-between items-center px-5 py-3 max-w-7xl mx-auto">
         <div className="flex items-center gap-3">

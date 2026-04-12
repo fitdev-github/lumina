@@ -41,6 +41,11 @@ const categoryIcons = {
   'shopping': ShoppingBag,
   'utilities': Zap,
   'health': Heart,
+  'home': Receipt,
+  'salary': Wallet,
+  'freelance': Zap,
+  'bonus': Sparkles,
+  'investment': TrendingUp,
   // Thai fallbacks (legacy)
   'อาหาร': UtensilsCrossed,
   'เดินทาง': Car,
@@ -54,6 +59,22 @@ const categoryIcons = {
   'อื่นๆ': CreditCard,
   'income': TrendingUp,
   'other': CreditCard,
+}
+
+const categoryLabels = {
+  'food': 'อาหาร',
+  'transport': 'เดินทาง',
+  'bills': 'บิล',
+  'shopping': 'ช้อปปิ้ง',
+  'utilities': 'สาธารณูปโภค',
+  'health': 'สุขภาพ',
+  'home': 'บ้าน',
+  'salary': 'เงินเดือน',
+  'freelance': 'ฟรีแลนซ์',
+  'bonus': 'โบนัส',
+  'investment': 'ลงทุน',
+  'income': 'รายรับ',
+  'other': 'อื่นๆ',
 }
 
 export default function Home() {
@@ -71,7 +92,7 @@ export default function Home() {
   const recentTransactions = transactions.slice(0, 5).map(t => ({
     id: t.id,
     category: t.category || 'อื่นๆ',
-    merchant: t.note || t.category || 'รายการ',
+    merchant: t.note || categoryLabels[t.category] || t.category || 'รายการ',
     amount: t.type === 'income' ? t.amount : -Math.abs(t.amount),
     time: t.date
       ? new Date(t.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
@@ -92,7 +113,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-surface via-surface-50 to-white">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-border-subtle">
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-border-subtle safe-area-top">
         <div className="px-5 py-4 max-w-lg mx-auto">
           <div className="flex items-center justify-between">
             <div>
@@ -134,7 +155,7 @@ export default function Home() {
             </div>
             <CardContent className="p-6 relative z-10">
               <div className="flex items-start justify-between mb-1">
-                <p className="text-white/80 text-sm">เงินอิสระคงเหลือเดือนนี้</p>
+                <p className="text-white/80 text-sm">ยอดเงินคงเหลือเดือนนี้</p>
                 <Badge className="bg-white/20 text-white border-0 text-xs">
                   {cashFlow.daysRemaining} วันที่เหลือ
                 </Badge>

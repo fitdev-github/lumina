@@ -14,6 +14,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import TopBar from '@/components/TopBar'
 import BottomNav from '@/components/BottomNav'
+import { useTheme } from '@/contexts/ThemeContext'
 
 const colorThemes = [
   { id: 'blue', name: 'น้ำเงิน', color: '#5B7FFF', gradient: 'from-[#5B7FFF] to-[#8B5CF6]' },
@@ -32,8 +33,8 @@ const fontSizes = [
 
 export default function Settings() {
   const navigate = useNavigate()
+  const { darkMode, toggleDarkMode } = useTheme()
   const [theme, setTheme] = useState('blue')
-  const [darkMode, setDarkMode] = useState(false)
   const [fontSize, setFontSize] = useState('medium')
   const [currency, setCurrency] = useState('THB')
   const [saved, setSaved] = useState(false)
@@ -44,30 +45,21 @@ export default function Settings() {
       if (savedSettings) {
         const settings = JSON.parse(savedSettings)
         setTheme(settings.theme || 'blue')
-        setDarkMode(settings.darkMode || false)
         setFontSize(settings.fontSize || 'medium')
         setCurrency(settings.currency || 'THB')
-        applySettings(settings.darkMode || false, settings.fontSize || 'medium')
+        // Font size apply
+        const scaleMap = { small: '87.5%', medium: '100%', large: '112.5%' }
+        document.documentElement.style.fontSize = scaleMap[settings.fontSize || 'medium']
       }
     } catch { /* ignore */ }
   }, [])
 
-  const applySettings = (dark, size) => {
-    // Dark mode
-    if (dark) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-    // Font size
-    const scaleMap = { small: '87.5%', medium: '100%', large: '112.5%' }
-    document.documentElement.style.fontSize = scaleMap[size] || '100%'
-  }
-
   const handleSave = () => {
     const settings = { theme, darkMode, fontSize, currency }
     localStorage.setItem('app_settings', JSON.stringify(settings))
-    applySettings(darkMode, fontSize)
+    // Apply font size
+    const scaleMap = { small: '87.5%', medium: '100%', large: '112.5%' }
+    document.documentElement.style.fontSize = scaleMap[fontSize] || '100%'
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -82,7 +74,7 @@ export default function Settings() {
     <div className="min-h-screen bg-gradient-to-br from-surface via-surface-50 to-white">
       <TopBar title="ตั้งค่า" onClose={() => navigate('/profile')} back={true} showProfile={false} />
       
-      <main className="max-w-lg mx-auto px-5 pt-24 pb-32">
+      <main className="max-w-lg mx-auto px-5 page-top pb-32">
         
         {/* Theme Selection */}
         <section className="mb-6">
@@ -130,7 +122,7 @@ export default function Settings() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setDarkMode(!darkMode)}
+                  onClick={() => toggleDarkMode()}
                   className={`w-14 h-8 rounded-full p-1 transition-colors ${
                     darkMode ? 'bg-primary' : 'bg-surface-200'
                   }`}
