@@ -18,7 +18,8 @@ import {
   Car,
   Zap,
   Heart,
-  ShoppingBag
+  ShoppingBag,
+  Mail
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -269,14 +270,14 @@ export default function Home() {
             <span className="text-xs font-semibold text-text-primary">รายจ่าย</span>
           </Button>
           <Button 
-            onClick={() => navigate('/goals')}
+            onClick={() => navigate('/gmail-import')}
             variant="outline" 
             className="h-auto py-4 flex-col gap-2 shadow-sm hover:shadow-md transition-all"
           >
             <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center">
-              <PiggyBank className="w-5 h-5 text-primary" />
+              <Mail className="w-5 h-5 text-primary" />
             </div>
-            <span className="text-xs font-semibold text-text-primary">เป้าหมาย</span>
+            <span className="text-xs font-semibold text-text-primary">นำเข้า</span>
           </Button>
         </div>
 

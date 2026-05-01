@@ -1,3 +1,15 @@
+/**
+ * @deprecated This service is deprecated. Use the new modular Gmail module instead.
+ * 
+ * Import path changes:
+ * - requestGmailAccessToken()  → @/modules/gmail/auth
+ * - fetchAllMatchingMessages() → @/modules/gmail/api (via sync.js)
+ * - parseAllEmails()           → @/modules/gmail/parserRegistry (via sync.js)
+ * 
+ * New recommended import:
+ * import { syncGmailTransactions } from '@/modules/gmail/sync'
+ */
+
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
 import { auth } from '@/firebase/config'
 

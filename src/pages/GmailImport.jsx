@@ -1,22 +1,38 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Mail, Loader2, CheckCircle2, AlertCircle, ChevronRight,
   UtensilsCrossed, Car, Receipt, ShoppingBag, Zap, Heart,
   Briefcase, Gift, Home, MoreHorizontal, Wallet, Building2,
-  RefreshCw, ArrowLeft, Download, Check, X,
+  RefreshCw, ArrowLeft, Download, Check, X, Calendar,
+  Building, ChevronDown, ChevronUp, Filter,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import TopBar from '@/components/TopBar'
+import BottomNav from '@/components/BottomNav'
 import { useAuth } from '@/contexts/AuthContext'
-import {
-  requestGmailAccessToken,
-  fetchAllMatchingMessages,
-  parseAllEmails,
-} from '@/services/gmailService'
+import { syncGmailTransactions } from '@/modules/gmail/sync'
 import { getImportedGmailIds, batchImportGmailTransactions } from '@/firebase/services'
+import { BANK_LIST } from '@/modules/gmail/query'
+
+const TIME_RANGES = [
+  { value: '1m', label: '1 เดือน' },
+  { value: '3m', label: '3 เดือน' },
+  { value: '6m', label: '6 เดือน' },
+  { value: '1y', label: '1 ปี' },
+]
+
+function getDefaultDateRange() {
+  const to = new Date()
+  const from = new Date()
+  from.setMonth(from.getMonth() - 3)
+  return {
+    from: from.toISOString().split('T')[0],
+    to: to.toISOString().split('T')[0],
+  }
+}
 
 // ── Category config (mirrors AddTransaction) ──────────────────────────────
 
@@ -71,10 +87,268 @@ function StepLoading({ message }) {
   )
 }
 
-function StepFetching({ progress }) {
+function StepOptions({
+  selectedBanks,
+  onBankToggle,
+  onSelectAllBanks,
+  onDeselectAllBanks,
+  dateRange,
+  onDateRangeChange,
+  timeRange,
+  onTimeRangeChange,
+  onConfirm,
+  onBack,
+  dateMode,
+  onDateModeChange,
+}) {
+  const [showBanks, setShowBanks] = useState(true)
+
+  const selectedBankNames = selectedBanks.map(id => {
+    const bank = BANK_LIST.find(b => b.id === id)
+    return bank?.name || id
+  }).join(', ')
+
+  const timeRangeLabel = dateMode === 'custom'
+    ? `${dateRange.from} ถึง ${dateRange.to}`
+    : TIME_RANGES.find(tr => tr.value === timeRange)?.label || timeRange
+
+  const getDayCount = () => {
+    if (dateMode === 'custom') {
+      const from = new Date(dateRange.from)
+      const to = new Date(dateRange.to)
+      return Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1
+    }
+    switch (timeRange) {
+      case '1m': return 30
+      case '3m': return 90
+      case '6m': return 180
+      case '1y': return 365
+      default: return 90
+    }
+  }
+
+  const dayCount = getDayCount()
+
+  return (
+    <>
+      {/* Summary Preview */}
+      <Card className="border-primary/30 bg-primary-50/30">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <Filter className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-text-primary">สรุปการค้นหา</h3>
+              <div className="mt-2 space-y-1 text-sm text-text-secondary">
+                <p>
+                  <span className="text-text-tertiary">ธนาคาร:</span>{' '}
+                  <span className="font-medium text-primary">
+                    {selectedBanks.length > 0 ? selectedBankNames : 'ยังไม่เลือก'}
+                  </span>
+                </p>
+                <p>
+                  <span className="text-text-tertiary">ช่วงวันที่:</span>{' '}
+                  <span className="font-medium text-primary">{timeRangeLabel}</span>
+                  <span className="text-text-tertiary text-xs ml-1">(ประมาณ {dayCount} วัน)</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Date Range Section */}
+      <Card>
+        <CardContent className="p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold text-text-primary">ช่วงวันที่</h3>
+            </div>
+          </div>
+
+          {/* Date Mode Toggle */}
+          <div className="flex rounded-lg overflow-hidden border border-border">
+            <button
+              onClick={() => onDateModeChange('preset')}
+              className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                dateMode === 'preset'
+                  ? 'bg-primary text-white'
+                  : 'bg-white text-text-secondary hover:bg-surface-50'
+              }`}
+            >
+              เลือกเร็ว
+            </button>
+            <button
+              onClick={() => onDateModeChange('custom')}
+              className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                dateMode === 'custom'
+                  ? 'bg-primary text-white'
+                  : 'bg-white text-text-secondary hover:bg-surface-50'
+              }`}
+            >
+              กำหนดเอง
+            </button>
+          </div>
+
+          {dateMode === 'preset' ? (
+            <div className="flex flex-wrap gap-2">
+              {TIME_RANGES.map(tr => (
+                <button
+                  key={tr.value}
+                  onClick={() => onTimeRangeChange(tr.value)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    timeRange === tr.value
+                      ? 'bg-primary text-white'
+                      : 'bg-surface-100 text-text-secondary border border-border hover:bg-surface-200'
+                  }`}
+                >
+                  {tr.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="text-xs text-text-tertiary mb-1 block">จากวันที่</label>
+                <input
+                  type="date"
+                  value={dateRange.from}
+                  onChange={e => onDateRangeChange('from', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border text-sm focus:outline-none focus:border-primary"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs text-text-tertiary mb-1 block">ถึงวันที่</label>
+                <input
+                  type="date"
+                  value={dateRange.to}
+                  onChange={e => onDateRangeChange('to', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border text-sm focus:outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Bank Selection Section */}
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Building className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold text-text-primary">เลือกธนาคาร</h3>
+            </div>
+            <button
+              onClick={() => setShowBanks(v => !v)}
+              className="p-1 hover:bg-surface-100 rounded"
+            >
+              {showBanks ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            </button>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={onSelectAllBanks}
+              className="text-xs px-3 py-1.5 rounded-lg border border-border text-text-secondary hover:bg-surface-50"
+            >
+              เลือกทั้งหมด
+            </button>
+            <button
+              onClick={onDeselectAllBanks}
+              className="text-xs px-3 py-1.5 rounded-lg border border-border text-text-secondary hover:bg-surface-50"
+            >
+              ยกเลิกทั้งหมด
+            </button>
+          </div>
+
+          {showBanks && (
+            <div className="grid grid-cols-2 gap-2">
+              {BANK_LIST.map(bank => {
+                const isSelected = selectedBanks.includes(bank.id)
+                return (
+                  <button
+                    key={bank.id}
+                    onClick={() => onBankToggle(bank.id)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm text-left transition-colors ${
+                      isSelected
+                        ? 'bg-primary-50 border-primary text-primary'
+                        : 'bg-surface-50 border-border text-text-secondary hover:bg-surface-100'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                      isSelected
+                        ? 'bg-primary border-primary'
+                        : 'border-border'
+                    }`}>
+                      {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
+                    </div>
+                    {bank.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          <p className="text-xs text-text-tertiary">
+            เลือก {selectedBanks.length} ธนาคาร
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Warning */}
+      {selectedBanks.length > 0 && dayCount > 90 && (
+        <Card className="border-warning/30 bg-warning-50/30">
+          <CardContent className="p-3">
+            <p className="text-sm text-warning">
+              ⚠️ การค้นหามากกว่า 90 วัน อาจใช้เวลานานและดึงข้อมูลหลายรายการ
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex flex-col gap-3">
+        <Button
+          onClick={onConfirm}
+          disabled={selectedBanks.length === 0}
+          className="w-full h-12 bg-gradient-to-r from-primary to-accent border-0"
+        >
+          <Mail className="w-5 h-5 mr-2" />
+          เริ่มค้นหา
+        </Button>
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="w-full h-12"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          กลับ
+        </Button>
+      </div>
+    </>
+  )
+}
+
+function StepFetching({ progress, banks, dateMode, timeRange, dateRange }) {
   const percent = progress.total > 0
     ? Math.round((progress.current / progress.total) * 100)
     : 0
+  
+  const selectedBankNames = banks?.map(id => {
+    const bank = BANK_LIST.find(b => b.id === id)
+    return bank?.name || id
+  }).join(', ') || 'ทุกธนาคาร'
+
+  const dateInfo = dateMode === 'custom'
+    ? `${dateRange.from} ถึง ${dateRange.to}`
+    : timeRange === '1m' ? '1 เดือน'
+    : timeRange === '3m' ? '3 เดือน'
+    : timeRange === '6m' ? '6 เดือน'
+    : '1 ปี'
+
   return (
     <div className="flex flex-col items-center justify-center py-20 space-y-6 px-4">
       <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center">
@@ -97,9 +371,10 @@ function StepFetching({ progress }) {
         </div>
         <p className="text-xs text-text-tertiary text-center mt-2">{percent}%</p>
       </div>
-      <p className="text-xs text-text-tertiary text-center max-w-xs">
-        ค้นหาอีเมลแจ้งเตือนธนาคารในช่วง 3 เดือนที่ผ่านมา
-      </p>
+      <div className="text-xs text-text-tertiary text-center max-w-xs space-y-1">
+        <p>ธนาคาร: {selectedBankNames}</p>
+        <p>ช่วงวันที่: {dateInfo}</p>
+      </div>
     </div>
   )
 }
@@ -320,7 +595,6 @@ export default function GmailImport() {
   const { user } = useAuth()
 
   const [step, setStep] = useState('intro')
-  const [accessToken, setAccessToken] = useState(null)
   const [fetchProgress, setFetchProgress] = useState({ current: 0, total: 0 })
   const [parsedTransactions, setParsedTransactions] = useState([])
   const [alreadyImportedIds, setAlreadyImportedIds] = useState(new Set())
@@ -330,40 +604,65 @@ export default function GmailImport() {
   const [importCount, setImportCount] = useState(0)
   const [errorMessage, setErrorMessage] = useState(null)
 
-  // ── Handlers ────────────────────────────────────────────────────────────
+  // Options state
+  const [selectedBanks, setSelectedBanks] = useState(['scb'])
+  const [dateMode, setDateMode] = useState('preset')
+  const [timeRange, setTimeRange] = useState('3m')
+  const [dateRange, setDateRange] = useState(getDefaultDateRange())
 
-  const handleConnect = useCallback(async () => {
+  // ── Options Handlers ────────────────────────────────────────────────────
+
+  const handleBankToggle = useCallback((bankId) => {
+    setSelectedBanks(prev => {
+      if (prev.includes(bankId)) {
+        return prev.filter(id => id !== bankId)
+      }
+      return [...prev, bankId]
+    })
+  }, [])
+
+  const handleSelectAllBanks = useCallback(() => {
+    setSelectedBanks(BANK_LIST.map(b => b.id))
+  }, [])
+
+  const handleDeselectAllBanks = useCallback(() => {
+    setSelectedBanks([])
+  }, [])
+
+  const handleDateRangeChange = useCallback((field, value) => {
+    setDateRange(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  const handleOptionsConfirm = useCallback(async () => {
     setStep('authenticating')
-    setErrorMessage(null)
-    try {
-      const token = await requestGmailAccessToken()
-      setAccessToken(token)
-      await handleFetch(token)
-    } catch (err) {
-      setErrorMessage(err.message || 'ไม่สามารถเชื่อมต่อ Gmail ได้')
-      setStep('error')
-    }
-  }, [user])
-
-  const handleFetch = useCallback(async (token) => {
-    setStep('fetching')
     setFetchProgress({ current: 0, total: 0 })
+    setErrorMessage(null)
+
     try {
-      const [importedIds, { messages, cappedAt: cap }] = await Promise.all([
-        getImportedGmailIds(user.uid),
-        fetchAllMatchingMessages(token, (cur, tot) =>
-          setFetchProgress({ current: cur, total: tot })
-        ),
-      ])
+      const syncOptions = {
+        onProgress: (current, total) =>
+          setFetchProgress({ current, total }),
+        getImportedIds: () => getImportedGmailIds(user.uid),
+        banks: selectedBanks,
+      }
 
-      const parsed = parseAllEmails(messages)
-      setAlreadyImportedIds(importedIds)
-      setParsedTransactions(parsed)
-      setCappedAt(cap)
+      if (dateMode === 'custom') {
+        syncOptions.fromDate = dateRange.from
+        syncOptions.toDate = dateRange.to
+      } else {
+        syncOptions.timeRange = timeRange
+      }
 
-      // Pre-select new (non-imported) transactions
+      const result = await syncGmailTransactions(syncOptions)
+
+      setAlreadyImportedIds(result.alreadyImported)
+      setParsedTransactions(result.transactions)
+      setCappedAt(result.cappedAt)
+
       const newIds = new Set(
-        parsed.filter(t => !importedIds.has(t.gmailMessageId)).map(t => t.gmailMessageId)
+        result.transactions
+          .filter(t => !result.alreadyImported.has(t.gmailMessageId))
+          .map(t => t.gmailMessageId)
       )
       setSelectedIds(newIds)
       setEditOverrides({})
@@ -372,7 +671,52 @@ export default function GmailImport() {
       setErrorMessage(err.message || 'ไม่สามารถดึงข้อมูลจาก Gmail ได้')
       setStep('error')
     }
-  }, [user])
+  }, [user, selectedBanks, dateMode, timeRange, dateRange])
+
+  // ── Handlers ────────────────────────────────────────────────────────────
+
+  const handleConnect = useCallback(() => {
+    setStep('options')
+  }, [])
+
+  const handleFetch = useCallback(async () => {
+    setStep('fetching')
+    setFetchProgress({ current: 0, total: 0 })
+    try {
+      const syncOptions = {
+        onProgress: (current, total) =>
+          setFetchProgress({ current, total }),
+        getImportedIds: () => getImportedGmailIds(user.uid),
+      }
+
+      if (dateMode === 'custom') {
+        syncOptions.fromDate = dateRange.from
+        syncOptions.toDate = dateRange.to
+      } else {
+        syncOptions.timeRange = timeRange
+      }
+
+      syncOptions.banks = selectedBanks
+
+      const result = await syncGmailTransactions(syncOptions)
+
+      setAlreadyImportedIds(result.alreadyImported)
+      setParsedTransactions(result.transactions)
+      setCappedAt(result.cappedAt)
+
+      const newIds = new Set(
+        result.transactions
+          .filter(t => !result.alreadyImported.has(t.gmailMessageId))
+          .map(t => t.gmailMessageId)
+      )
+      setSelectedIds(newIds)
+      setEditOverrides({})
+      setStep('review')
+    } catch (err) {
+      setErrorMessage(err.message || 'ไม่สามารถดึงข้อมูลจาก Gmail ได้')
+      setStep('error')
+    }
+  }, [user, selectedBanks, dateMode, timeRange, dateRange])
 
   const handleToggle = useCallback((id) => {
     setSelectedIds(prev => {
@@ -464,8 +808,7 @@ export default function GmailImport() {
                       นำเข้าธุรกรรมจาก Gmail
                     </h2>
                     <p className="text-sm text-text-secondary mt-2">
-                      ระบบจะค้นหาอีเมลแจ้งเตือนจากธนาคาร (KBank, SCB, KTB, BBL, PromptPay)
-                      ในช่วง 3 เดือนที่ผ่านมา แล้ว parse ยอดเงินให้อัตโนมัติ
+                      ระบบจะค้นหาอีเมลแจ้งเตือนจากธนาคาร แล้ว parse ยอดเงินให้อัตโนมัติ
                     </p>
                   </div>
 
@@ -483,8 +826,8 @@ export default function GmailImport() {
                     onClick={handleConnect}
                     className="w-full h-12 bg-gradient-to-r from-primary to-accent border-0 text-base"
                   >
-                    <Mail className="w-5 h-5 mr-2" />
-                    เชื่อมต่อ Gmail
+                    <Filter className="w-5 h-5 mr-2" />
+                    เลือกธนาคารและช่วงวันที่
                   </Button>
 
                   <p className="text-xs text-text-tertiary">
@@ -493,24 +836,40 @@ export default function GmailImport() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Prerequisites note */}
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-xs font-semibold text-text-primary mb-2">ก่อนใช้งาน</p>
-                <p className="text-xs text-text-secondary">
-                  ต้องเปิดใช้งาน Gmail API และเพิ่ม scope <code className="bg-surface-100 px-1 rounded">gmail.readonly</code> ใน Google Cloud Console ของโปรเจกต์ก่อน
-                </p>
-              </CardContent>
-            </Card>
           </>
+        )}
+
+        {/* ── Options ── */}
+        {step === 'options' && (
+          <StepOptions
+            selectedBanks={selectedBanks}
+            onBankToggle={handleBankToggle}
+            onSelectAllBanks={handleSelectAllBanks}
+            onDeselectAllBanks={handleDeselectAllBanks}
+            dateRange={dateRange}
+            onDateRangeChange={handleDateRangeChange}
+            timeRange={timeRange}
+            onTimeRangeChange={setTimeRange}
+            onConfirm={handleOptionsConfirm}
+            onBack={() => setStep('intro')}
+            dateMode={dateMode}
+            onDateModeChange={setDateMode}
+          />
         )}
 
         {/* ── Authenticating ── */}
         {step === 'authenticating' && <StepLoading message="กำลังเชื่อมต่อ Gmail..." />}
 
         {/* ── Fetching ── */}
-        {step === 'fetching' && <StepFetching progress={fetchProgress} />}
+        {step === 'fetching' && (
+          <StepFetching
+            progress={fetchProgress}
+            banks={selectedBanks}
+            dateMode={dateMode}
+            timeRange={timeRange}
+            dateRange={dateRange}
+          />
+        )}
 
         {/* ── Review ── */}
         {step === 'review' && (
@@ -552,7 +911,7 @@ export default function GmailImport() {
                       ยกเลิกทั้งหมด
                     </button>
                     <button
-                      onClick={() => handleFetch(accessToken)}
+                      onClick={handleFetch}
                       className="ml-auto text-xs px-3 py-1.5 rounded-lg border border-border text-text-secondary hover:bg-surface-50 transition-colors flex items-center gap-1"
                     >
                       <RefreshCw className="w-3 h-3" />
@@ -633,12 +992,13 @@ export default function GmailImport() {
         {step === 'error' && (
           <StepError
             message={errorMessage}
-            onRetry={handleConnect}
-            onBack={() => navigate('/profile')}
+            onRetry={() => setStep('options')}
+            onBack={() => setStep('intro')}
           />
         )}
 
       </main>
+      <BottomNav />
     </div>
   )
 }
