@@ -16,8 +16,9 @@ export { buildQuery, buildSingleBankQuery, buildDefaultQuery, BANK_QUERIES, BANK
 export { syncGmailTransactions, syncSingleBank, parseMessages } from './sync.js';
 
 // Parser registry
-export { registerParser, getParser, getAllSenders, parseWithRegistry, scbConfig } from './parserRegistry.js';
+export { registerParser, getParser, getAllSenders, parseWithRegistry, scbConfig, ktbConfig } from './parserRegistry.js';
 
 // Parsers
 export { parseScbEmail, scbConfig as scbParserConfig } from './parsers/scbParser.js';
+export { parseKtbEmail, ktbConfig as ktbParserConfig } from './parsers/ktbParser.js';
 export { THAI_MONTHS, parseThaiDate, extractFieldValue, parseAmount, decodeGmailBody, stripHtml, extractPayloadText, createTransaction } from './parsers/shared.js';

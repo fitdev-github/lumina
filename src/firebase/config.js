@@ -24,7 +24,7 @@ googleProvider.addScope('profile')
 googleProvider.addScope('email')
 
 // Set auth persistence
-setPersistence(auth, browserLocalPersistence).catch((error) => {
+export const authPersistenceReady = setPersistence(auth, browserLocalPersistence).catch((error) => {
   console.error('Auth persistence error:', error)
 })
 

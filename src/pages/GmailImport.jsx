@@ -1,11 +1,11 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Mail, Loader2, CheckCircle2, AlertCircle, ChevronRight,
   UtensilsCrossed, Car, Receipt, ShoppingBag, Zap, Heart,
   Briefcase, Gift, Home, MoreHorizontal, Wallet, Building2,
   RefreshCw, ArrowLeft, Download, Check, X, Calendar,
-  Building, ChevronDown, ChevronUp, Filter,
+  Building, ChevronDown, ChevronUp, Filter, PiggyBank, CreditCard, Banknote,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -13,25 +13,58 @@ import { Badge } from '@/components/ui/badge'
 import TopBar from '@/components/TopBar'
 import BottomNav from '@/components/BottomNav'
 import { useAuth } from '@/contexts/AuthContext'
+import { useAccounts } from '@/hooks'
 import { syncGmailTransactions } from '@/modules/gmail/sync'
 import { getImportedGmailIds, batchImportGmailTransactions } from '@/firebase/services'
 import { BANK_LIST } from '@/modules/gmail/query'
 
 const TIME_RANGES = [
+  { value: 'today', label: 'วันนี้' },
+  { value: 'yesterday', label: 'เมื่อวาน' },
   { value: '1m', label: '1 เดือน' },
   { value: '3m', label: '3 เดือน' },
   { value: '6m', label: '6 เดือน' },
   { value: '1y', label: '1 ปี' },
 ]
 
+function formatLocalDate(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function getDefaultDateRange() {
   const to = new Date()
   const from = new Date()
   from.setMonth(from.getMonth() - 3)
   return {
-    from: from.toISOString().split('T')[0],
-    to: to.toISOString().split('T')[0],
+    from: formatLocalDate(from),
+    to: formatLocalDate(to),
   }
+}
+
+function getPresetDateRange(timeRange) {
+  const to = new Date()
+  const from = new Date()
+
+  if (timeRange === 'today') {
+    return {
+      from: formatLocalDate(from),
+      to: formatLocalDate(to),
+    }
+  }
+
+  if (timeRange === 'yesterday') {
+    from.setDate(from.getDate() - 1)
+    to.setDate(to.getDate() - 1)
+    return {
+      from: formatLocalDate(from),
+      to: formatLocalDate(to),
+    }
+  }
+
+  return null
 }
 
 // ── Category config (mirrors AddTransaction) ──────────────────────────────
@@ -66,14 +99,24 @@ const BANK_COLORS = {
   unknown:    'bg-surface-100 text-text-secondary border-border',
 }
 
+const ACCOUNT_TYPE_ICONS = {
+  checking: Wallet,
+  savings: PiggyBank,
+  credit: CreditCard,
+  investment: Building2,
+  cash: Banknote,
+}
+
+const ACCOUNT_PURPOSE_COLORS = {
+  emergency: 'text-error',
+  savings: 'text-secondary',
+  general: 'text-text-secondary',
+}
+
 const CONFIDENCE_CONFIG = {
   high:   { label: 'แม่นยำ',       color: 'bg-secondary-50 text-secondary border-secondary/30' },
   medium: { label: 'โปรดตรวจสอบ',  color: 'bg-warning-50 text-warning border-warning/30' },
   low:    { label: 'ไม่แน่ใจ',      color: 'bg-error-50 text-error border-error/30' },
-}
-
-function formatAmount(n) {
-  return n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
@@ -119,6 +162,8 @@ function StepOptions({
       return Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1
     }
     switch (timeRange) {
+      case 'today': return 1
+      case 'yesterday': return 1
       case '1m': return 30
       case '3m': return 90
       case '6m': return 180
@@ -344,6 +389,8 @@ function StepFetching({ progress, banks, dateMode, timeRange, dateRange }) {
 
   const dateInfo = dateMode === 'custom'
     ? `${dateRange.from} ถึง ${dateRange.to}`
+    : timeRange === 'today' ? 'วันนี้'
+    : timeRange === 'yesterday' ? 'เมื่อวาน'
     : timeRange === '1m' ? '1 เดือน'
     : timeRange === '3m' ? '3 เดือน'
     : timeRange === '6m' ? '6 เดือน'
@@ -379,7 +426,7 @@ function StepFetching({ progress, banks, dateMode, timeRange, dateRange }) {
   )
 }
 
-function TransactionReviewCard({ transaction, isSelected, isAlreadyImported, overrides, onToggle, onEdit }) {
+function TransactionReviewCard({ transaction, isSelected, isAlreadyImported, overrides, accounts, onToggle, onEdit }) {
   const [showCategories, setShowCategories] = useState(false)
 
   const t = { ...transaction, ...overrides }
@@ -498,6 +545,50 @@ function TransactionReviewCard({ transaction, isSelected, isAlreadyImported, ove
               )}
             </div>
 
+            {/* Account selector */}
+            {accounts.length > 0 && (
+              <div className="mb-2">
+                <p className="text-xs text-text-tertiary mb-1.5">
+                  {t.type === 'expense' ? 'หักจากบัญชี' : 'เข้าบัญชี'}
+                </p>
+                <div className="flex gap-1.5 overflow-x-auto pb-1">
+                  <button
+                    disabled={disabled}
+                    onClick={() => onEdit(t.gmailMessageId, 'accountId', null)}
+                    className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                      !t.accountId
+                        ? 'bg-surface-200 border-border text-text-primary'
+                        : 'bg-white border-border text-text-tertiary hover:border-primary/30'
+                    } disabled:cursor-not-allowed`}
+                  >
+                    ไม่อัปเดตยอด
+                  </button>
+                  {accounts.map(acc => {
+                    const AccountIcon = ACCOUNT_TYPE_ICONS[acc.type] || Wallet
+                    const selected = t.accountId === acc.id
+                    const purposeColor = ACCOUNT_PURPOSE_COLORS[acc.purpose] || ACCOUNT_PURPOSE_COLORS.general
+                    return (
+                      <button
+                        key={acc.id}
+                        disabled={disabled}
+                        onClick={() => onEdit(t.gmailMessageId, 'accountId', selected ? null : acc.id)}
+                        className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                          selected
+                            ? t.type === 'expense'
+                              ? 'bg-error-50 border-error/40 text-error'
+                              : 'bg-secondary-50 border-secondary/40 text-secondary'
+                            : 'bg-white border-border text-text-secondary hover:border-primary/30'
+                        } disabled:cursor-not-allowed`}
+                      >
+                        <AccountIcon className={`w-3.5 h-3.5 ${selected ? '' : purposeColor}`} />
+                        <span className="max-w-[90px] truncate">{acc.name}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Date */}
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs text-text-tertiary w-10">วันที่</span>
@@ -593,6 +684,7 @@ function StepError({ message, onRetry, onBack }) {
 export default function GmailImport() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { accounts, updateAccount } = useAccounts()
 
   const [step, setStep] = useState('intro')
   const [fetchProgress, setFetchProgress] = useState({ current: 0, total: 0 })
@@ -605,7 +697,7 @@ export default function GmailImport() {
   const [errorMessage, setErrorMessage] = useState(null)
 
   // Options state
-  const [selectedBanks, setSelectedBanks] = useState(['scb'])
+  const [selectedBanks, setSelectedBanks] = useState(['ktb'])
   const [dateMode, setDateMode] = useState('preset')
   const [timeRange, setTimeRange] = useState('3m')
   const [dateRange, setDateRange] = useState(getDefaultDateRange())
@@ -646,9 +738,14 @@ export default function GmailImport() {
         banks: selectedBanks,
       }
 
+      const presetDateRange = dateMode === 'preset' ? getPresetDateRange(timeRange) : null
+
       if (dateMode === 'custom') {
         syncOptions.fromDate = dateRange.from
         syncOptions.toDate = dateRange.to
+      } else if (presetDateRange) {
+        syncOptions.fromDate = presetDateRange.from
+        syncOptions.toDate = presetDateRange.to
       } else {
         syncOptions.timeRange = timeRange
       }
@@ -689,9 +786,14 @@ export default function GmailImport() {
         getImportedIds: () => getImportedGmailIds(user.uid),
       }
 
+      const presetDateRange = dateMode === 'preset' ? getPresetDateRange(timeRange) : null
+
       if (dateMode === 'custom') {
         syncOptions.fromDate = dateRange.from
         syncOptions.toDate = dateRange.to
+      } else if (presetDateRange) {
+        syncOptions.fromDate = presetDateRange.from
+        syncOptions.toDate = presetDateRange.to
       } else {
         syncOptions.timeRange = timeRange
       }
@@ -747,11 +849,22 @@ export default function GmailImport() {
     if (selectedIds.size === 0) return
     setStep('importing')
 
+    const accountDeltas = new Map()
+
     const items = parsedTransactions
       .filter(t => selectedIds.has(t.gmailMessageId))
       .map(t => {
         const overrides = editOverrides[t.gmailMessageId] || {}
         const merged = { ...t, ...overrides }
+        if (merged.accountId) {
+          const signedAmount = merged.type === 'expense'
+            ? -Math.abs(merged.amount || 0)
+            : Math.abs(merged.amount || 0)
+          accountDeltas.set(
+            merged.accountId,
+            (accountDeltas.get(merged.accountId) || 0) + signedAmount
+          )
+        }
         return {
           transaction: {
             type: merged.type,
@@ -759,6 +872,7 @@ export default function GmailImport() {
             category: merged.category,
             note: merged.note,
             date: merged.date,
+            accountId: merged.accountId || null,
           },
           gmailMessageId: t.gmailMessageId,
           subject: t.rawSubject,
@@ -767,13 +881,22 @@ export default function GmailImport() {
 
     try {
       await batchImportGmailTransactions(user.uid, items)
+      await Promise.all(
+        Array.from(accountDeltas.entries()).map(([accountId, delta]) => {
+          const account = accounts.find(acc => acc.id === accountId)
+          if (!account) return null
+          return updateAccount(accountId, {
+            balance: (account.balance || 0) + delta,
+          })
+        })
+      )
       setImportCount(items.length)
       setStep('done')
     } catch (err) {
       setErrorMessage(err.message || 'เกิดข้อผิดพลาดระหว่างนำเข้า กรุณาลองใหม่')
       setStep('error')
     }
-  }, [parsedTransactions, selectedIds, editOverrides, user])
+  }, [parsedTransactions, selectedIds, editOverrides, user, accounts, updateAccount])
 
   // ── Derived values ───────────────────────────────────────────────────────
 
@@ -792,7 +915,7 @@ export default function GmailImport() {
         showProfile={false}
       />
 
-      <main className="max-w-lg mx-auto px-5 page-top pb-32 space-y-4">
+      <main className="max-w-lg mx-auto px-5 page-top pb-44 space-y-4">
 
         {/* ── Intro ── */}
         {step === 'intro' && (
@@ -956,20 +1079,27 @@ export default function GmailImport() {
                 isSelected={selectedIds.has(t.gmailMessageId)}
                 isAlreadyImported={alreadyImportedIds.has(t.gmailMessageId)}
                 overrides={editOverrides[t.gmailMessageId] || {}}
+                accounts={accounts}
                 onToggle={handleToggle}
                 onEdit={handleEdit}
               />
             ))}
 
             {/* Sticky import button */}
-            {selectedIds.size > 0 && (
-              <div className="fixed bottom-0 left-0 right-0 px-5 pb-6 pt-3 bg-gradient-to-t from-white via-white/95 to-transparent max-w-lg mx-auto">
+            {selectableCount > 0 && (
+              <div
+                className="fixed left-0 right-0 z-[60] px-5 pt-3 bg-gradient-to-t from-white via-white/95 to-transparent max-w-lg mx-auto"
+                style={{ bottom: 'calc(5.75rem + env(safe-area-inset-bottom, 0px))' }}
+              >
                 <Button
                   onClick={handleImport}
-                  className="w-full h-14 bg-gradient-to-r from-primary to-accent border-0 text-base shadow-lg"
+                  disabled={selectedIds.size === 0}
+                  className="w-full h-14 bg-gradient-to-r from-primary to-accent border-0 text-base shadow-lg disabled:opacity-60"
                 >
                   <Download className="w-5 h-5 mr-2" />
-                  นำเข้า {selectedIds.size} รายการ
+                  {selectedIds.size > 0
+                    ? `เพิ่มเข้าระบบ ${selectedIds.size} รายการ`
+                    : 'เลือกรายการเพื่อเพิ่มเข้าระบบ'}
                 </Button>
               </div>
             )}

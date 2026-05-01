@@ -76,7 +76,15 @@ export function subscribeToTransactions(userId, callback) {
 }
 
 export async function deleteTransaction(userId, transactionId) {
-  await deleteDoc(doc(db, COLLECTIONS.USERS, userId, COLLECTIONS.TRANSACTIONS, transactionId))
+  const transactionRef = doc(db, COLLECTIONS.USERS, userId, COLLECTIONS.TRANSACTIONS, transactionId)
+  const importsRef = collection(db, COLLECTIONS.USERS, userId, GMAIL_IMPORTS_COLLECTION)
+  const importedQuery = query(importsRef, where('transactionId', '==', transactionId))
+  const importedSnapshot = await getDocs(importedQuery)
+
+  const batch = writeBatch(db)
+  batch.delete(transactionRef)
+  importedSnapshot.docs.forEach(importDoc => batch.delete(importDoc.ref))
+  await batch.commit()
 }
 
 // ============== GOALS ==============
@@ -401,7 +409,32 @@ const GMAIL_IMPORTS_COLLECTION = 'gmail_imports'
 export async function getImportedGmailIds(userId) {
   const ref = collection(db, COLLECTIONS.USERS, userId, GMAIL_IMPORTS_COLLECTION)
   const snapshot = await getDocs(ref)
-  return new Set(snapshot.docs.map(d => d.id))
+  const validIds = new Set()
+  const staleRefs = []
+
+  await Promise.all(snapshot.docs.map(async importDoc => {
+    const transactionId = importDoc.data().transactionId
+    if (!transactionId) {
+      validIds.add(importDoc.id)
+      return
+    }
+
+    const transactionRef = doc(db, COLLECTIONS.USERS, userId, COLLECTIONS.TRANSACTIONS, transactionId)
+    const transactionSnap = await getDoc(transactionRef)
+    if (transactionSnap.exists()) {
+      validIds.add(importDoc.id)
+    } else {
+      staleRefs.push(importDoc.ref)
+    }
+  }))
+
+  for (let i = 0; i < staleRefs.length; i += 500) {
+    const batch = writeBatch(db)
+    staleRefs.slice(i, i + 500).forEach(ref => batch.delete(ref))
+    await batch.commit()
+  }
+
+  return validIds
 }
 
 export async function batchImportGmailTransactions(userId, items) {

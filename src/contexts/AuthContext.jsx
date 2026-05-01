@@ -4,7 +4,7 @@ import {
   signOut,
   onAuthStateChanged,
 } from 'firebase/auth'
-import { auth, googleProvider } from '@/firebase/config'
+import { auth, authPersistenceReady, googleProvider } from '@/firebase/config'
 import { createUser } from '@/firebase/services'
 
 const AuthContext = createContext()
@@ -15,23 +15,34 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          await createUser(firebaseUser.uid, {
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-            provider: firebaseUser.providerData[0]?.providerId || 'google',
-          })
-        } catch (err) {
-          console.log('User creation skipped (may already exist):', err.message)
+    let unsubscribe = null
+    let cancelled = false
+
+    authPersistenceReady.finally(() => {
+      if (cancelled) return
+
+      unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          try {
+            await createUser(firebaseUser.uid, {
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+              provider: firebaseUser.providerData[0]?.providerId || 'google',
+            })
+          } catch (err) {
+            console.log('User creation skipped (may already exist):', err.message)
+          }
         }
-      }
-      setUser(firebaseUser)
-      setLoading(false)
+        setUser(firebaseUser)
+        setLoading(false)
+      })
     })
-    return unsubscribe
+
+    return () => {
+      cancelled = true
+      unsubscribe?.()
+    }
   }, [])
 
   const signInWithGoogle = async () => {

@@ -23,8 +23,8 @@ export const BANK_QUERIES = {
   ktb: {
     id: 'ktb',
     name: 'KTB',
-    sender: 'alert@ktb.co.th',
-    query: 'from:alert@ktb.co.th',
+    sender: 'noreply@krungthai.com',
+    query: 'from:noreply@krungthai.com',
   },
   bbl: {
     id: 'bbl',

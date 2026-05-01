@@ -9,6 +9,7 @@
  */
 
 import { scbConfig } from './parsers/scbParser.js';
+import { ktbConfig } from './parsers/ktbParser.js';
 
 const REGISTRY = new Map();
 
@@ -32,13 +33,13 @@ export function parseWithRegistry(rawMessage, senderEmail) {
 
 function initializeRegistry() {
   registerParser(scbConfig.sender, scbConfig);
+  registerParser(ktbConfig.sender, ktbConfig);
   
   // Future banks can be registered here:
   // registerParser('kbank@kbank.co.th', kbankConfig);
-  // registerParser('alert@ktb.co.th', ktbConfig);
   // registerParser('notify@bbl.co.th', bblConfig);
 }
 
 initializeRegistry();
 
-export { scbConfig };
+export { scbConfig, ktbConfig };
